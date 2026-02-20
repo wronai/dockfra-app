@@ -230,7 +230,9 @@ services:
     networks: [dockfra-shared, dev-net, frontend-net, backend-net, mobile-net]
     ports:
       - "${SSH_DEVELOPER_PORT:-2200}:2222"
-    env_file: ./ssh-developer/.env
+    env_file:
+      - path: ./ssh-developer/.env
+        required: false
     environment:
       - ENVIRONMENT=${ENVIRONMENT:-local}
       - APP_NAME=${APP_NAME}
