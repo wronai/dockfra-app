@@ -86,9 +86,9 @@ for i, line in enumerate(lines):
         else:
             in_code_block = False
             if current_file:
-                # Remove leading slashes if absolute path is intended to be relative to /workspace/app
+                # Remove leading slashes if absolute path is intended to be relative to /repo
                 clean_path = current_file.lstrip('/')
-                full_path = os.path.join('/workspace/app', clean_path)
+                full_path = os.path.join('/repo', clean_path)
                 print(f'Writing to {full_path}...')
                 os.makedirs(os.path.dirname(full_path) or '.', exist_ok=True)
                 with open(full_path, 'w') as f:
@@ -107,7 +107,7 @@ PYEOF
             echo "FAIL: aider not installed. Run: pip install aider-chat"
             exit 1
         fi
-        cd /workspace/app
+        cd /repo
         # Configure aider for OpenRouter
         export OPENAI_API_BASE="${OPENAI_API_BASE:-https://openrouter.ai/api/v1}"
         export OPENAI_API_KEY="${OPENROUTER_API_KEY:-}"
@@ -127,7 +127,7 @@ ticket_system.add_comment('$TICKET_ID', 'developer', 'AI implementation (aider e
             echo "FAIL: claude not installed. Run: npm i -g @anthropic-ai/claude-code"
             exit 1
         fi
-        cd /workspace/app
+        cd /repo
         claude --print "Implement ticket $TICKET_ID: $TITLE. $DESC. Write actual code, create files, include tests." 2>&1
         python3 -c "
 import sys; sys.path.insert(0, '/shared/lib'); import ticket_system
