@@ -47,6 +47,14 @@ help: ## Show available commands
 	@echo "║                                                              ║"
 	@echo "║  Full Pipeline Test:                                        ║"
 	@echo "║    make test-pipeline T=T-0001  — Run full pipeline test    ║"
+	@echo "║                                                              ║"
+	@echo "║  External simulation (from ssh-autopilot):                 ║"
+	@echo "║    make sim-bootstrap-key  — Prepare autopilot SSH key      ║"
+	@echo "║    make sim-check          — Test autopilot → developer SSH ║"
+	@echo "║    make sim-engine-test    — Test built_in engine remotely  ║"
+	@echo "║    make sim-implement T=T-0001                              ║"
+	@echo "║    make sim-commit MSG=\"test: msg\"                      ║"
+	@echo "║    make sim-git-push       — Dry-run push remotely          ║"
 	@echo "╚══════════════════════════════════════════════════════════════╝"
 	@echo ""
 
@@ -199,6 +207,22 @@ test-commit: ## Test commit-push script
 # EXTERNAL (ssh-autopilot) SIMULATION
 # ═══════════════════════════════════════════════════════════════
 
+.PHONY: sim-bootstrap-key
+sim-bootstrap-key: ## Copy mounted autopilot key into ~/.ssh/id_ed25519 (fixes unreadable ro-mounted key perms)
+	@echo "🤖 Bootstrapping autopilot SSH key for external simulation..."
+	@docker exec $(AUTOPILOT_CONTAINER) bash -lc "set -e; \
+		if [ -f /home/autopilot/.ssh/extra/id_ed25519 ]; then \
+			cp /home/autopilot/.ssh/extra/id_ed25519 /home/autopilot/.ssh/id_ed25519; \
+			chmod 600 /home/autopilot/.ssh/id_ed25519; \
+			chown autopilot:autopilot /home/autopilot/.ssh/id_ed25519; \
+		fi; \
+		if [ -f /home/autopilot/.ssh/extra/id_ed25519.pub ]; then \
+			cp /home/autopilot/.ssh/extra/id_ed25519.pub /home/autopilot/.ssh/id_ed25519.pub; \
+			chmod 644 /home/autopilot/.ssh/id_ed25519.pub; \
+			chown autopilot:autopilot /home/autopilot/.ssh/id_ed25519.pub; \
+		fi"
+	@echo "✅ Key bootstrap complete."
+
 .PHONY: sim-check
 sim-check: ## Check if ssh-autopilot can reach ssh-developer
 	@echo "🤖 Checking external access from ssh-autopilot..."
@@ -222,13 +246,13 @@ sim-git-push: ## Simulate external git push path via ssh-autopilot (dry-run)
 .PHONY: sim-engine-test
 sim-engine-test: ## Simulate external engine test via ssh-autopilot
 	@echo "🤖 External engine test via ssh-autopilot..."
-	@$(AUTOEXEC) "ssh ssh-developer 'engine-test built_in'"
+	@$(AUTOEXEC) "ssh ssh-developer \"export OPENROUTER_API_KEY='$$OPENROUTER_API_KEY' DEVELOPER_LLM_API_KEY='$$OPENROUTER_API_KEY' LLM_MODEL='$$LLM_MODEL'; engine-test built_in\""
 
 .PHONY: sim-implement
 sim-implement: ## Simulate external code generation via ssh-autopilot: make sim-implement T=T-0001
 	@[ -n "$(T)" ] || (echo "Usage: make sim-implement T=T-0001" && exit 1)
 	@echo "🤖 External implement via ssh-autopilot for $(T)..."
-	@$(AUTOEXEC) "ssh ssh-developer 'ticket-work $(T) && engine-implement built_in $(T)'"
+	@$(AUTOEXEC) "ssh ssh-developer \"export OPENROUTER_API_KEY='$$OPENROUTER_API_KEY' DEVELOPER_LLM_API_KEY='$$OPENROUTER_API_KEY' LLM_MODEL='$$LLM_MODEL'; ticket-work $(T) && engine-implement built_in $(T)\""
 
 .PHONY: sim-commit
 sim-commit: ## Simulate external commit-push via ssh-autopilot
