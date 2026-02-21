@@ -138,7 +138,7 @@ llm-test: ## Test LLM connection with simple prompt
 .PHONY: llm-config
 llm-config: ## Show LLM config (key masked)
 	@echo "⚙️ LLM Configuration:"
-	@$(EXEC) "python3 << 'PYEOF'\nimport sys\nsys.path.insert(0, '/shared/lib')\nimport llm_client\nc = llm_client.get_config()\nkey = c.get('api_key', '')\nif key:\n    masked = f\"{key[:12]}...{key[-4:]}\" if len(key) > 16 else '(too short)'\nelse:\n    masked = '(missing)'\nprint(f\"Model: {c['model']}\")\nprint(f\"API Key: {masked}\")\nprint(f\"Max tokens: {c['max_tokens']}\")\nprint(f\"Temperature: {c['temperature']}\")\nPYEOF"
+	@$(EXEC) "python3 -c 'import sys; sys.path.insert(0, \"/shared/lib\"); import llm_client; c=llm_client.get_config(); k=c.get(\"api_key\", \"\"); m=(k[:12]+\"...\"+k[-4:] if len(k)>16 else (\"(too short)\" if k else \"(missing)\")); print(\"Model:\", c.get(\"model\")); print(\"API Key:\", m); print(\"Max tokens:\", c.get(\"max_tokens\")); print(\"Temperature:\", c.get(\"temperature\"))'"
 
 .PHONY: llm-models
 llm-models: ## List available models
