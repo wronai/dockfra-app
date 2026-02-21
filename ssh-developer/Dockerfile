@@ -8,13 +8,21 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     rm -rf /var/lib/apt/lists/*
 
 # Autonomous dev engines (installed best-effort — container works even if these fail)
-RUN pip3 install --break-system-packages aider-chat 2>/dev/null || true
-RUN npm install -g @anthropic-ai/claude-code 2>/dev/null || true
+RUN pip3 install --break-system-packages aider-chat || true
+RUN npm install -g @anthropic-ai/claude-code || true
+# OpenCode — Go binary CLI agent (https://github.com/opencode-ai/opencode)
+RUN ARCH=$(dpkg --print-architecture) && \
+    (curl -fsSL "https://github.com/opencode-ai/opencode/releases/latest/download/opencode_Linux_${ARCH}.tar.gz" \
+    | tar -xz -C /usr/local/bin opencode 2>/dev/null && chmod +x /usr/local/bin/opencode) || \
+    echo "OpenCode install skipped (binary not available for ${ARCH})"
 
 # Role user
 RUN echo "AllowUsers developer" >> /etc/ssh/sshd_config && \
     useradd -m -s /bin/bash -G sudo developer && \
     echo "developer ALL=(ALL) NOPASSWD:ALL" >> /etc/sudoers.d/developer
+
+# Ensure pip-installed tools are on PATH for developer user
+ENV PATH="/home/developer/.local/bin:/usr/local/bin:${PATH}"
 
 COPY entrypoint.sh /entrypoint.sh
 COPY motd /etc/motd
