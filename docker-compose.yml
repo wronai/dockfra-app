@@ -50,6 +50,11 @@ volumes:
   developer-workspace:
   git-repo:
   shared-tickets:
+    driver: local
+    driver_opts:
+      type: none
+      o: bind
+      device: ../shared/tickets
 
 services:
 

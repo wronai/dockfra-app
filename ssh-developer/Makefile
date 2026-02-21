@@ -98,6 +98,15 @@ exec-frontend: ## Open shell in frontend container
 exec-db: ## Open psql in db container
 	@docker exec -it dockfra-db psql -U postgres
 
+.PHONY: engine-test
+engine-test: ## Test which dev engines are available
+	@$(EXEC) "engine-test"
+
+.PHONY: engine-implement
+engine-implement: ## AI implementation via selected engine: make engine-implement E=aider T=T-0001
+	@[ -n "$(T)" ] || (echo "Usage: make engine-implement E=built_in T=T-0001" && exit 1)
+	@$(EXEC) "engine-implement $(E) $(T)"
+
 .PHONY: logs
 logs: ## Tail developer container logs
 	@docker logs -f $(CONTAINER)

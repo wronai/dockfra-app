@@ -3,9 +3,13 @@ FROM dockfra-ssh-base
 
 # Developer-specific extras
 RUN apt-get update && apt-get install -y --no-install-recommends \
-    htop python3-venv python3-pytest make && \
+    htop python3-venv python3-pytest make nodejs npm && \
     pip3 install --break-system-packages flask pytest httpx black flake8 && \
     rm -rf /var/lib/apt/lists/*
+
+# Autonomous dev engines (installed best-effort — container works even if these fail)
+RUN pip3 install --break-system-packages aider-chat 2>/dev/null || true
+RUN npm install -g @anthropic-ai/claude-code 2>/dev/null || true
 
 # Role user
 RUN echo "AllowUsers developer" >> /etc/ssh/sshd_config && \
