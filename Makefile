@@ -236,23 +236,32 @@ sim-git-status: ## Simulate external git status/remote check via ssh-autopilot
 .PHONY: sim-git-pull
 sim-git-pull: ## Simulate external git fetch/pull path via ssh-autopilot
 	@echo "🤖 External git pull simulation via ssh-autopilot..."
-	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git fetch origin 2>&1 && git status || echo pull/fetch failed (missing remote or auth)'"
+	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git fetch origin 2>&1 && git status || echo \"pull/fetch failed (missing remote or auth)\"'"
 
 .PHONY: sim-git-push
 sim-git-push: ## Simulate external git push path via ssh-autopilot (dry-run)
 	@echo "🤖 External git push simulation via ssh-autopilot..."
-	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git push --dry-run origin HEAD 2>&1 || echo push failed (missing remote or auth)'"
+	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git push --dry-run origin HEAD 2>&1 || echo \"push failed (missing remote or auth)\"'"
+
+.PHONY: sim-env
+sim-env: ## Verify env forwarding from ssh-autopilot to ssh-developer (no network calls)
+	@echo "🤖 Verifying env forwarding (autopilot -> developer)..."
+	@$(AUTOEXEC) 'K="$${OPENROUTER_API_KEY:-}"; M="$${LLM_MODEL:-gpt-4o-mini}"; \
+		ssh ssh-developer "export OPENROUTER_API_KEY=\"$$K\" DEVELOPER_LLM_API_KEY=\"$$K\" LLM_MODEL=\"$$M\"; \
+		echo KEY_LEN:$${#OPENROUTER_API_KEY} MODEL:$$LLM_MODEL"'
 
 .PHONY: sim-engine-test
 sim-engine-test: ## Simulate external engine test via ssh-autopilot
 	@echo "🤖 External engine test via ssh-autopilot..."
-	@$(AUTOEXEC) "ssh ssh-developer \"export OPENROUTER_API_KEY='$$OPENROUTER_API_KEY' DEVELOPER_LLM_API_KEY='$$OPENROUTER_API_KEY' LLM_MODEL='$$LLM_MODEL'; engine-test built_in\""
+	@$(AUTOEXEC) 'K="$${OPENROUTER_API_KEY:-}"; M="$${LLM_MODEL:-gpt-4o-mini}"; \
+		ssh ssh-developer "export OPENROUTER_API_KEY=\"$$K\" DEVELOPER_LLM_API_KEY=\"$$K\" LLM_MODEL=\"$$M\"; engine-test built_in"'
 
 .PHONY: sim-implement
 sim-implement: ## Simulate external code generation via ssh-autopilot: make sim-implement T=T-0001
 	@[ -n "$(T)" ] || (echo "Usage: make sim-implement T=T-0001" && exit 1)
 	@echo "🤖 External implement via ssh-autopilot for $(T)..."
-	@$(AUTOEXEC) "ssh ssh-developer \"export OPENROUTER_API_KEY='$$OPENROUTER_API_KEY' DEVELOPER_LLM_API_KEY='$$OPENROUTER_API_KEY' LLM_MODEL='$$LLM_MODEL'; ticket-work $(T) && engine-implement built_in $(T)\""
+	@$(AUTOEXEC) 'K="$${OPENROUTER_API_KEY:-}"; M="$${LLM_MODEL:-gpt-4o-mini}"; \
+		ssh ssh-developer "export OPENROUTER_API_KEY=\"$$K\" DEVELOPER_LLM_API_KEY=\"$$K\" LLM_MODEL=\"$$M\"; ticket-work $(T) && engine-implement built_in $(T)"'
 
 .PHONY: sim-commit
 sim-commit: ## Simulate external commit-push via ssh-autopilot
