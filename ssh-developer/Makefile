@@ -8,10 +8,10 @@
 # ═══════════════════════════════════════════════════════════════
 
 CONTAINER  ?= dockfra-ssh-developer
-USER       ?= developer
+ROLE_USER  ?= developer
 SSH_PORT   ?= 2200
-SSH        := ssh $(USER)@localhost -p $(SSH_PORT) -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
-EXEC       := docker exec -it -u $(USER) $(CONTAINER) bash -lc
+SSH        := ssh $(ROLE_USER)@localhost -p $(SSH_PORT) -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null
+EXEC       := docker exec -u $(ROLE_USER) $(CONTAINER) bash -lc
 
 .DEFAULT_GOAL := help
 
