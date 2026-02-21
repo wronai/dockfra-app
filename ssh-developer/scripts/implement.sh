@@ -63,7 +63,7 @@ for i, line in enumerate(lines):
             in_code_block = False
             if current_file:
                 clean_path = current_file.lstrip('/')
-                full_path = os.path.join('/workspace/app', clean_path)
+                full_path = os.path.join('/repo', clean_path)
                 print(f'Writing to {full_path}...')
                 os.makedirs(os.path.dirname(full_path) or '.', exist_ok=True)
                 with open(full_path, 'w') as f:
