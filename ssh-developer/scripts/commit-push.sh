@@ -1,5 +1,5 @@
 #!/bin/bash
-cd /repo
+cd /workspace/app
 MSG="${1:-Update $(date +%Y-%m-%d_%H:%M)}"
 [ -z "$(git status --porcelain)" ] && { echo "Nothing to commit."; exit 0; }
 git add -A && git commit -m "$MSG"

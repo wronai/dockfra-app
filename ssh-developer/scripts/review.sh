@@ -2,7 +2,7 @@
 export PYTHONPATH="/shared/lib:$PYTHONPATH"
 FILE="${1:-}"
 [ -z "$FILE" ] && { echo "Usage: review <file>"; exit 1; }
-[ ! -f "$FILE" ] && [ -f "/repo/$FILE" ] && FILE="/repo/$FILE"
+[ ! -f "$FILE" ] && [ -f "/workspace/app/$FILE" ] && FILE="/workspace/app/$FILE"
 [ ! -f "$FILE" ] && { echo "File not found: $FILE"; exit 1; }
 CONTENT=$(cat "$FILE")
 python3 -c "
