@@ -11,6 +11,8 @@ CONTAINER   ?= dockfra-ssh-developer
 ROLE_USER   ?= developer
 EXEC        := docker exec -u $(ROLE_USER) $(CONTAINER) bash -lc
 EXEC_ROOT   := docker exec $(CONTAINER) bash -lc
+AUTOPILOT_CONTAINER ?= dockfra-ssh-autopilot
+AUTOEXEC            := docker exec -u autopilot $(AUTOPILOT_CONTAINER) bash -lc
 
 .DEFAULT_GOAL := help
 
@@ -55,7 +57,12 @@ help: ## Show available commands
 .PHONY: up
 up: ## Start ssh-developer container only (minimal deps)
 	@echo "🚀 Starting ssh-developer container..."
-	docker compose up -d ssh-developer
+	@if docker ps -a --format '{{.Names}}' | grep -qx '$(CONTAINER)'; then \
+		echo "ℹ️ Container $(CONTAINER) already exists — starting existing container..."; \
+		docker start $(CONTAINER) >/dev/null || true; \
+	else \
+		docker compose up -d ssh-developer; \
+	fi
 	@echo "✅ Container started. Run 'make shell' to enter."
 
 .PHONY: down
@@ -131,7 +138,7 @@ llm-test: ## Test LLM connection with simple prompt
 .PHONY: llm-config
 llm-config: ## Show LLM config (key masked)
 	@echo "⚙️ LLM Configuration:"
-	@$(EXEC) "python3 -c 'import sys; sys.path.insert(0, \"/shared/lib\"); import llm_client; c=llm_client.get_config(); print(f\"Model: {c[\\\"model\\\"]}\"); print(f\"API Key: {c[\\\"api_key\\\"][:12]}...{c[\\\"api_key\\\"][-4:] if len(c[\\\"api_key\\\"])>16 else \\\"(too short)\\\"}\"); print(f\"Max tokens: {c[\\\"max_tokens\\\"]}\"); print(f\"Temperature: {c[\\\"temperature\\\"]}\")'"
+	@$(EXEC) "python3 << 'PYEOF'\nimport sys\nsys.path.insert(0, '/shared/lib')\nimport llm_client\nc = llm_client.get_config()\nkey = c.get('api_key', '')\nif key:\n    masked = f\"{key[:12]}...{key[-4:]}\" if len(key) > 16 else '(too short)'\nelse:\n    masked = '(missing)'\nprint(f\"Model: {c['model']}\")\nprint(f\"API Key: {masked}\")\nprint(f\"Max tokens: {c['max_tokens']}\")\nprint(f\"Temperature: {c['temperature']}\")\nPYEOF"
 
 .PHONY: llm-models
 llm-models: ## List available models
@@ -151,7 +158,7 @@ gen-test: ## Test file extraction from LLM response
 gen-where: ## Show where generated files are written
 	@echo "📁 File write destinations:"
 	@echo "  engine-implement.sh → /repo/"
-	@echo "  implement.sh        → /workspace/app/"
+	@echo "  implement.sh        → /repo/"
 	@echo ""
 	@echo "  /repo contents:"
 	@$(EXEC) "ls -la /repo/ 2>/dev/null || echo '/repo not found or empty'"
@@ -187,6 +194,47 @@ test-commit: ## Test commit-push script
 	@$(EXEC) "cd /repo && git status"
 	@echo ""
 	@$(EXEC) "commit-push 'test: pipeline check'"
+
+# ═══════════════════════════════════════════════════════════════
+# EXTERNAL (ssh-autopilot) SIMULATION
+# ═══════════════════════════════════════════════════════════════
+
+.PHONY: sim-check
+sim-check: ## Check if ssh-autopilot can reach ssh-developer
+	@echo "🤖 Checking external access from ssh-autopilot..."
+	@$(AUTOEXEC) "ssh ssh-developer 'echo connected && whoami && hostname'"
+
+.PHONY: sim-git-status
+sim-git-status: ## Simulate external git status/remote check via ssh-autopilot
+	@echo "🤖 External git status via ssh-autopilot..."
+	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git status && echo && git remote -v'"
+
+.PHONY: sim-git-pull
+sim-git-pull: ## Simulate external git fetch/pull path via ssh-autopilot
+	@echo "🤖 External git pull simulation via ssh-autopilot..."
+	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git fetch origin 2>&1 && git status || echo pull/fetch failed (missing remote or auth)'"
+
+.PHONY: sim-git-push
+sim-git-push: ## Simulate external git push path via ssh-autopilot (dry-run)
+	@echo "🤖 External git push simulation via ssh-autopilot..."
+	@$(AUTOEXEC) "ssh ssh-developer 'cd /repo && git push --dry-run origin HEAD 2>&1 || echo push failed (missing remote or auth)'"
+
+.PHONY: sim-engine-test
+sim-engine-test: ## Simulate external engine test via ssh-autopilot
+	@echo "🤖 External engine test via ssh-autopilot..."
+	@$(AUTOEXEC) "ssh ssh-developer 'engine-test built_in'"
+
+.PHONY: sim-implement
+sim-implement: ## Simulate external code generation via ssh-autopilot: make sim-implement T=T-0001
+	@[ -n "$(T)" ] || (echo "Usage: make sim-implement T=T-0001" && exit 1)
+	@echo "🤖 External implement via ssh-autopilot for $(T)..."
+	@$(AUTOEXEC) "ssh ssh-developer 'ticket-work $(T) && engine-implement built_in $(T)'"
+
+.PHONY: sim-commit
+sim-commit: ## Simulate external commit-push via ssh-autopilot
+	@[ -n "$(MSG)" ] || (echo "Usage: make sim-commit MSG=\"test: message\"" && exit 1)
+	@echo "🤖 External commit-push via ssh-autopilot..."
+	@$(AUTOEXEC) "ssh ssh-developer \"commit-push '$(MSG)'\""
 
 # ═══════════════════════════════════════════════════════════════
 # ENVIRONMENT DEBUG
